@@ -1,0 +1,16 @@
+name: lgmps
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip
+  - numpy
+  - pytorch>=2.7
+  - pytorch-cuda=12.4
+  - pip:
+      - matplotlib>=3.8
+      - orjson>=3.10
+      - pytest>=8.0
+      - ruff>=0.9

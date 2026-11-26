@@ -1,0 +1,25 @@
+{
+  "name": "session_transformer",
+  "model": {
+    "attention_pattern": "session_transformer",
+    "attention_heads": 12,
+    "width": 256,
+    "layers": 8,
+    "head_width": 64,
+    "feedforward_width": 768,
+    "history_backend": "fla",
+    "use_triton_session_attention": true
+  },
+  "training": {
+    "epochs": 20,
+    "batch_size": 1,
+    "learning_rate": 0.0001,
+    "early_stop_patience": 2,
+    "precision": "bfloat16"
+  },
+  "inference": {
+    "beam_size": 20,
+    "return_sequences": 20
+  },
+  "data": {}
+}

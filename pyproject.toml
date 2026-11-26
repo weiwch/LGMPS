@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lgmps"
+version = "0.1.0"
+description = "PyTorch implementation of session-local/global generative personalized search"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.26",
+  "orjson>=3.10",
+  "torch>=2.7",
+  "triton>=3.3; platform_system == 'Linux'",
+]
+
+[project.optional-dependencies]
+data = [
+  "pandas>=2.2",
+  "pillow>=10",
+  "pyarrow>=16",
+  "transformers>=4.45",
+]
+visualization = ["matplotlib>=3.8"]
+dev = ["pytest>=8.0", "ruff>=0.9"]
+
+[project.scripts]
+lgmps-build-index = "lgmps.cli.build_index:main"
+lgmps-convert-data = "lgmps.cli.convert_data:main"
+lgmps-train = "lgmps.cli.train:main"
+lgmps-evaluate = "lgmps.cli.evaluate:main"
+lgmps-infer = "lgmps.cli.infer:main"
+lgmps-visualize-gates = "lgmps.cli.visualize_gates:main"
+lgmps-visualize-attention = "lgmps.cli.visualize_attention:main"
+lgmps-visualize-moe = "lgmps.cli.visualize_moe:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["lgmps*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"

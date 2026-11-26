@@ -1,0 +1,80 @@
+diff --git a/fla/layers/gated_deltanet.py b/fla/layers/gated_deltanet.py
+index 8bfd5e8..8a1c476 100644
+--- a/fla/layers/gated_deltanet.py
++++ b/fla/layers/gated_deltanet.py
+@@ -240,6 +240,7 @@ class GatedDeltaNet(nn.Module):
+ 
+         last_state = get_layer_cache(self, past_key_values)
+ 
++        indices = None
+         cu_seqlens = kwargs.get('cu_seqlens')
+         if cu_seqlens is None and attention_mask is not None:
+             indices, cu_seqlens, _ = get_unpad_data(attention_mask[:, -q_len:])
+@@ -304,7 +305,9 @@ class GatedDeltaNet(nn.Module):
+         q, k = map(lambda x: rearrange(x, '... (h d) -> ... h d', d=self.head_k_dim), (q, k))
+         v = rearrange(v, '... (h d) -> ... h d', d=self.head_v_dim)
+ 
+-        beta = self.b_proj(hidden_states)
++        # keep raw projections available for the optional research hook
++        a_logits = self.a_proj(hidden_states)
++        beta_logits = self.b_proj(hidden_states)
+ 
+         recurrent_state = last_state['recurrent_state'] if last_state is not None else None
+         if mode == 'chunk':
+@@ -312,8 +315,8 @@ class GatedDeltaNet(nn.Module):
+                 q=q,
+                 k=k,
+                 v=v,
+-                g=self.a_proj(hidden_states),
+-                beta=beta,
++                g=a_logits,
++                beta=beta_logits,
+                 A_log=self.A_log,
+                 dt_bias=self.dt_bias,
+                 initial_state=recurrent_state,
+@@ -330,8 +333,8 @@ class GatedDeltaNet(nn.Module):
+                 q=q,
+                 k=k,
+                 v=v,
+-                g=self.a_proj(hidden_states),
+-                beta=beta,
++                g=a_logits,
++                beta=beta_logits,
+                 A_log=self.A_log,
+                 dt_bias=self.dt_bias,
+                 initial_state=recurrent_state,
+@@ -346,6 +349,33 @@ class GatedDeltaNet(nn.Module):
+         else:
+             raise NotImplementedError(f"Not supported mode `{mode}`.")
+ 
++        gate_capture = kwargs.get('gate_capture')
++        if gate_capture is not None:
++            # detached FP32 values match the kernel transformations without changing autograd
++            with torch.no_grad():
++                log_alpha = (
++                    -self.A_log.float().exp()
++                    * F.softplus(a_logits.float() + self.dt_bias.float())
++                )
++                gate_capture(
++                    {
++                        'layer_idx': self.layer_idx,
++                        'alpha': log_alpha.exp().detach(),
++                        'beta': beta_logits.float().sigmoid().detach(),
++                        'alpha_logits': a_logits.detach(),
++                        'beta_logits': beta_logits.detach(),
++                        'effective_beta_scale': 2.0 if self.allow_neg_eigval else 1.0,
++                        'layout': (
++                            'mask_unpadded' if indices is not None
++                            else 'packed' if cu_seqlens is not None
++                            else 'dense'
++                        ),
++                        'cu_seqlens': None if cu_seqlens is None else cu_seqlens.detach(),
++                        'indices': None if indices is None else indices.detach(),
++                        'original_shape': (batch_size, q_len),
++                    }
++                )
++
+         update_layer_cache(
+             self,
+             past_key_values,
+             recurrent_state=recurrent_state,

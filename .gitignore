@@ -1,0 +1,26 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+.venv/
+.vscode
+
+# Local data, runtime artifacts, and experiment records
+/data/
+/raw/
+/artifacts/
+/processed/
+/outputs/
+/results/
+/checkpoints/
+/logs/
+*.log
+
+# Optional local upstream checkout
+third_party/flash-linear-attention/
+
+# Editor / platform noise
+.DS_Store
+._*
